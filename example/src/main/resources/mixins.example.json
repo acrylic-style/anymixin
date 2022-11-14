@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "package": "com.example.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.8.5",
+  "mixins": [
+    "MixinPlayerConnection"
+  ]
+}
