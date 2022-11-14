@@ -4,7 +4,7 @@
 
 ## Running an application
 
-To run an application, simply download the anymixin.jar file and run it with the command like this:
+To run an application, download the anymixin.jar file, put mixin jars in the `modules` directory, and run it with the command like this:
 ```shell
 java -jar anymixin.jar path/to/application.jar [arguments]
 ```
