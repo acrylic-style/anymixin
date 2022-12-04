@@ -65,7 +65,7 @@ public class AnyMixin {
         }
         String[] jarArgs = new String[args.length - srcPos];
         System.arraycopy(args, srcPos, jarArgs, 0, jarArgs.length);
-        new AnyMixin(args[0], jarArgs).run();
+        new AnyMixin(args[srcPos - 1], jarArgs).run();
     }
 
     public static void agentmain(String agentArgs, Instrumentation inst) {
