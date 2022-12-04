@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "xyz.acrylicstyle.anymixin"
-version = "0.0.1-SNAPSHOT"
+version = "1.0.0-SNAPSHOT"
 
 repositories {
     mavenCentral()

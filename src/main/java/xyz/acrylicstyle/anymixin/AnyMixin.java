@@ -58,8 +58,13 @@ public class AnyMixin {
             System.out.println("Usage: java -jar anymixin.jar <path to jar file>");
             return;
         }
-        String[] jarArgs = new String[args.length - 1];
-        System.arraycopy(args, 1, jarArgs, 0, args.length - 1);
+        int srcPos = 1;
+        if (args[0].equals("-jar")) {
+            // for launcher which doesn't support injecting arguments after -jar but allows injecting arguments before -jar
+            srcPos = 2;
+        }
+        String[] jarArgs = new String[args.length - srcPos];
+        System.arraycopy(args, srcPos, jarArgs, 0, jarArgs.length);
         new AnyMixin(args[0], jarArgs).run();
     }
 
