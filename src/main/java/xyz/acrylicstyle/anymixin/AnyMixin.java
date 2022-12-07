@@ -3,13 +3,25 @@ package xyz.acrylicstyle.anymixin;
 import net.blueberrymc.nativeutil.NativeUtil;
 import net.minecraft.launchwrapper.Launch;
 import org.jetbrains.annotations.NotNull;
+import xyz.acrylicstyle.anymixin.asm.ASM;
+import xyz.acrylicstyle.anymixin.asm.ASMCraftBukkitMain;
+import xyz.acrylicstyle.anymixin.asm.ASMProcessMainClass;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 public class AnyMixin {
+    private static final List<ASM> ASM_LIST = Arrays.asList(
+            new ASMCraftBukkitMain(),
+            new ASMProcessMainClass()
+    );
+
     private static String agentArgs;
     private static Instrumentation inst;
     private final String jarPath;
@@ -21,7 +33,7 @@ public class AnyMixin {
     }
 
     public void run() throws Exception {
-        NativeUtil.appendToSystemClassLoaderSearch(jarPath);
+        //NativeUtil.appendToSystemClassLoaderSearch(jarPath);
         Manifest manifest;
         try (JarFile file = new JarFile(new File(jarPath))) {
             manifest = new Manifest(file.getInputStream(file.getJarEntry("META-INF/MANIFEST.MF")));
@@ -41,12 +53,34 @@ public class AnyMixin {
         launch();
     }
 
-    private void launch() {
+    private void launch() throws MalformedURLException {
+        NativeUtil.registerClassLoadHook((classLoader, s, aClass, protectionDomain, bytes) -> {
+            if (bytes == null) {
+                return null; // we are not class generator
+            }
+            byte[] currentBytes = null;
+            for (ASM asm : ASM_LIST) {
+                if (asm.canProcess(s)) {
+                    // initialize currentBytes
+                    if (currentBytes == null) {
+                        currentBytes = bytes;
+                    }
+
+                    // actually process the bytecode
+                    byte[] tempBytes = asm.accept(s, bytes);
+                    if (tempBytes != null) {
+                        currentBytes = tempBytes;
+                    }
+                }
+            }
+            return currentBytes;
+        });
+
         String[] newArgs = new String[args.length + 1];
         newArgs[0] = "--tweakClass=xyz.acrylicstyle.anymixin.AnyMixinTweaker";
         System.arraycopy(args, 0, newArgs, 1, args.length);
         AnyMixinTweaker.args = newArgs;
-        Launch.main(newArgs);
+        Launch.main(newArgs, new URL("file:/" + jarPath));
     }
 
     public static void main(String[] args) throws Exception {
@@ -65,7 +99,12 @@ public class AnyMixin {
         }
         String[] jarArgs = new String[args.length - srcPos];
         System.arraycopy(args, srcPos, jarArgs, 0, jarArgs.length);
-        new AnyMixin(args[srcPos - 1], jarArgs).run();
+        File jarFile = new File(args[srcPos - 1]);
+        if (!jarFile.exists()) {
+            System.out.println("File not found: " + jarFile.getAbsolutePath());
+            return;
+        }
+        new AnyMixin(jarFile.getAbsolutePath(), jarArgs).run();
     }
 
     public static void agentmain(String agentArgs, Instrumentation inst) {

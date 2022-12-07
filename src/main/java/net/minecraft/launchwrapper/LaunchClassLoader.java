@@ -66,17 +66,37 @@ public class LaunchClassLoader extends URLClassLoader {
 
         // classloader exclusions
         addClassLoaderExclusion("java.");
-        addClassLoaderExclusion("com.sun.");
+        addClassLoaderExclusion("com.sun.accessibility.");
+        addClassLoaderExclusion("com.sun.java.");
+        addClassLoaderExclusion("com.sun.net.");
+        addClassLoaderExclusion("com.sun.org.");
+        addClassLoaderExclusion("com.sun.beans.");
+        addClassLoaderExclusion("com.sun.crypto.");
+        addClassLoaderExclusion("com.sun.imageio.");
+        addClassLoaderExclusion("com.sun.jarsigner.");
+        addClassLoaderExclusion("com.sun.java_cup.");
+        addClassLoaderExclusion("com.sun.jdi.");
+        addClassLoaderExclusion("com.sun.jmx.");
+        addClassLoaderExclusion("com.sun.jndi.");
+        addClassLoaderExclusion("com.sun.management.");
+        addClassLoaderExclusion("com.sun.media.");
+        addClassLoaderExclusion("com.sun.naming.");
+        addClassLoaderExclusion("com.sun.rowset.");
+        addClassLoaderExclusion("com.sun.security.");
+        addClassLoaderExclusion("com.sun.source.");
+        addClassLoaderExclusion("com.sun.swing.");
+        addClassLoaderExclusion("com.sun.tools.");
+        addClassLoaderExclusion("com.sun.xml.");
         addClassLoaderExclusion("sun.");
-        addClassLoaderExclusion("org.lwjgl.");
-        addClassLoaderExclusion("org.apache.logging.");
+        //addClassLoaderExclusion("org.lwjgl.");
+        //addClassLoaderExclusion("org.apache.logging.");
         addClassLoaderExclusion("net.minecraft.launchwrapper.");
-        addClassLoaderExclusion("com.google.gson.");
-        addClassLoaderExclusion("com.google.common.");
-        addClassLoaderExclusion("com.mojang.bridge.");
-        addClassLoaderExclusion("io.netty.");
-        addClassLoaderExclusion("it.unimi.dsi.fastutil.");
-        addClassLoaderExclusion("org.slf4j.");
+        //addClassLoaderExclusion("com.google.gson.");
+        //addClassLoaderExclusion("com.google.common.");
+        //addClassLoaderExclusion("com.mojang.bridge.");
+        //addClassLoaderExclusion("io.netty.");
+        //addClassLoaderExclusion("it.unimi.dsi.fastutil.");
+        //addClassLoaderExclusion("org.slf4j.");
         addClassLoaderExclusion("org.objectweb.asm.");
         addClassLoaderExclusion("jdk.");
 
@@ -190,7 +210,8 @@ public class LaunchClassLoader extends URLClassLoader {
 
                         Package pkg = getPackage(packageName);
                         getClassBytes(untransformedName);
-                        signers = entry.getCodeSigners();
+                        // TODO: workaround for SecurityException being thrown loading org.spongepowered.configurate.util.UnmodifiableCollections
+                        //signers = entry.getCodeSigners();
                         if (pkg == null) {
                             pkg = definePackage(packageName, manifest, jarURLConnection.getJarFileURL());
                         }
@@ -216,18 +237,17 @@ public class LaunchClassLoader extends URLClassLoader {
                 saveTransformedClass(transformedClass, transformedName);
             }
 
+            if (signers != null) {
+                LOGGER.info("Signers of {} are {}", transformedName, Arrays.toString(signers));
+            }
             final CodeSource codeSource = urlConnection == null ? null : new CodeSource(urlConnection.getURL(), signers);
             final Class<?> clazz = defineClass(transformedName, transformedClass, 0, transformedClass.length, codeSource);
             cachedClasses.put(transformedName, clazz);
             return clazz;
         } catch (Throwable e) {
             invalidClasses.add(name);
-            if (DEBUG) {
+            if (DEBUG || e instanceof SecurityException) {
                 LOGGER.error("Exception encountered attempting classloading of {}", name, e);
-            }
-            // for some reason, instanceof returns false, so we do this instead
-            if (e.getClass().getTypeName().equals("net.blueberrymc.common.util.BlueberryEvil$WrongSideException")) {
-                throw (RuntimeException) e;
             }
             throw new ClassNotFoundException(name, e);
         }
@@ -329,6 +349,12 @@ public class LaunchClassLoader extends URLClassLoader {
     public void addURL(@NotNull final URL url) {
         super.addURL(url);
         sources.add(url);
+    }
+
+    public void addURLs(@NotNull URL @NotNull ... urls) {
+        for (URL url : urls) {
+            addURL(url);
+        }
     }
 
     @SuppressWarnings("unused")

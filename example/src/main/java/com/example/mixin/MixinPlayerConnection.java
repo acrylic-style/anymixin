@@ -1,8 +1,8 @@
 package com.example.mixin;
 
-import net.minecraft.server.v1_15_R1.PacketPlayInChat;
-import net.minecraft.server.v1_15_R1.PlayerConnection;
-import org.bukkit.craftbukkit.v1_15_R1.entity.CraftPlayer;
+import net.minecraft.network.protocol.game.PacketPlayInChat;
+import net.minecraft.server.network.PlayerConnection;
+import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -11,10 +11,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PlayerConnection.class)
 public abstract class MixinPlayerConnection {
-    @Shadow public abstract CraftPlayer getPlayer();
+    @Shadow public abstract CraftPlayer getCraftPlayer();
 
-    @Inject(method = "a(Lnet/minecraft/server/v1_15_R1/PacketPlayInChat;)V", at = @At("HEAD"))
+    @Inject(method = "a(Lnet/minecraft/network/protocol/game/PacketPlayInChat;)V", at = @At("HEAD"))
     public void onChat(PacketPlayInChat packet, CallbackInfo ci) {
-        this.getPlayer().sendMessage("You said: " + packet.b());
+        this.getCraftPlayer().sendMessage("You said: " + packet.b());
     }
 }

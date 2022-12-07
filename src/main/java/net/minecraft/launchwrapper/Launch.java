@@ -38,8 +38,17 @@ public class Launch {
     public static LaunchClassLoader classLoader;
     private static Throwable lastError;
 
-    public static void main(@NotNull String@NotNull[] args) {
-        new Launch().launch(args);
+    @Contract(pure = true)
+    public static @NotNull LaunchClassLoader getClassLoader() {
+        return Objects.requireNonNull(classLoader, "classLoader is not initialized yet");
+    }
+
+    public static void main(@NotNull String @NotNull [] args, @NotNull URL... additionalURLs) {
+        Launch launch = new Launch();
+        for (URL url : additionalURLs) {
+            classLoader.addURL(url);
+        }
+        launch.launch(args);
     }
 
     private Launch() {
@@ -72,10 +81,6 @@ public class Launch {
                         throw new AssertionError(e);
                     }
                 }
-            }
-            LOGGER.info("Classpath for LaunchClassLoader:");
-            for (URL url : cp) {
-                LOGGER.info(" - \"{}\"", url);
             }
             classLoader = LaunchClassLoader.createClassLoaderWithParent(cp.toArray(new URL[0]), cl);
         }
@@ -123,6 +128,10 @@ public class Launch {
     }
 
     private void launch(String[] args) {
+        LOGGER.info("Classpath for LaunchClassLoader:");
+        for (URL url : classLoader.getURLs()) {
+            LOGGER.info(" - \"{}\"", url);
+        }
         OptionParser parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
         OptionSpec<String> profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();

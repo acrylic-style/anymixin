@@ -1,6 +1,7 @@
 package xyz.acrylicstyle.anymixin;
 
 import net.minecraft.launchwrapper.ITweaker;
+import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,6 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class AnyMixinTweaker implements ITweaker {
+    private static final boolean SKIP_INIT_MIXIN = Boolean.getBoolean("anymixin.skipInit");
     private static final Logger LOGGER = LogManager.getLogger();
     public static String launchTarget;
     public static String[] args;
@@ -26,9 +28,9 @@ public class AnyMixinTweaker implements ITweaker {
     @Override
     public void injectIntoClassLoader(LaunchClassLoader classLoader) {
         try {
-            MixinBootstrap.init();
-            classLoader.registerTransformer("org.spongepowered.asm.mixin.transformer.Proxy");
-            initMixin();
+            if (!SKIP_INIT_MIXIN) {
+                initMixin();
+            }
         } catch (Throwable throwable) {
             LOGGER.fatal("Critical error during initialization phase of mixin", throwable);
         }
@@ -52,11 +54,14 @@ public class AnyMixinTweaker implements ITweaker {
 
     public static void initMixin() {
         if (initializedMixin) throw new RuntimeException("Mixin is already initialized");
+        MixinBootstrap.init();
+        Launch.getClassLoader().registerTransformer("org.spongepowered.asm.mixin.transformer.Proxy");
         try {
             Method m = MixinEnvironment.class.getDeclaredMethod("gotoPhase", MixinEnvironment.Phase.class);
             m.setAccessible(true);
             m.invoke(null, MixinEnvironment.Phase.INIT);
             m.invoke(null, MixinEnvironment.Phase.DEFAULT);
+            LOGGER.info("Mixin phase is set to DEFAULT");
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
